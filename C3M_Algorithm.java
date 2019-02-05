@@ -57,8 +57,9 @@ public class C3M_Algorithm {
 		this.minLikelihood = minLikelihood;
 		this.likelihood = minLikelihood;
 		this.minOccurrence = (int) K.minOccurrence;
-		this.fileOut = "test//Results(" + String.valueOf(minLikelihood) + ").csv";
-		//this.fileOut = "/Users/corentinviemon/Desktop/Résultats/Résultats(" + String.valueOf(minLikelihood) + ").csv";
+		//YOU HAVE TO CHOOSE THE OUTPUT PATH
+		//this.fileOut = "test//Results(" + String.valueOf(minLikelihood) + ").csv";
+		this.fileOut = "/Users/corentinviemon/Desktop/Résultats/Résultats(" + String.valueOf(minLikelihood) + ").csv";
 		System.out.println("Enf of data download in" + K.time() + "\r\n");
 		
 		//Start of the algorithm
@@ -73,7 +74,7 @@ public class C3M_Algorithm {
 	
 	public void C3M_Main(Data_Retrieve K, double minLikelihood, double confidenceLevel) throws InterruptedException {
 		//It browses every relation in the relations List
-		for (int i = 4 ; i < K.relationsList.size() ; i++) {
+		for (int i = 0 ; i < K.relationsList.size() ; i++) {
 			System.out.println("\r\nRelation n°" + (i+1) + "/" + K.relationsList.size() + " [" + K.relationsList.get(i) + "]");
 			//The relation rdf-type is skiped because of probleme of timeout and precision
 			if (K.relationsList.get(i).equals("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")) {
@@ -244,30 +245,30 @@ public class C3M_Algorithm {
 		likelihood = minLikelihood;
 		maximumCardinality = Integer.MAX_VALUE;
 		int n = 0;
-		//On parcourt l'ArrayList countPerCardinalities qui contient les différentes cardinalités récupérées lors de la dernière requête
+		//the ArrayList is browsed to retrieve each cardinality and its number of occurrences
 		for (int i = 0; i < countPerCardinalities.size(); i++) {
 			int cardinality = countPerCardinalities.get(i).cardinality;
 			int count = countPerCardinalities.get(i).count;
 			n += count;
-			//On effectue les différents calculs de cohérence
+			//Likelihhod is computed according to the Hoeffding's inequality
 			double avg = ((double)count) / n;
 			double error = Math.sqrt(Math.log(1 / delta) / (2 * n));
 			double lower = Math.max(avg - error, 0);
-			//Si la cohérence calculée est supérieure au seuil (boucle pour trouver un maximum)
+			//If the computed likelihood is greater than the threshold
 			if (lower > likelihood) {
-				maximumCardinality = cardinality; //on remplace la cardinalité maximale
-				likelihood = lower; //on remplace le seuil par cette cohérence
+				maximumCardinality = cardinality; //the maximum cardinality value is replaced
+				likelihood = lower; //and the threshold is replaced by the likelihood that is higher
 			}
 			else{
-				if (lower > underMinLower) //Sinon, on récupère la confiance maximale inférieure au seuil (pour faire des statistiques)
+				if (lower > underMinLower) //Else the the highest likelihood under the threshold is retrieved
 					underMinLower = lower;
 			}
 		}
-		if (likelihood == minLikelihood){ //Si la confiance est égale au seuil, c-a-d si le seuil n'a jamais été dépassé et donc qu'il n'y a pas de cardinalité maximale
-			cardConstraint.likelihood = underMinLower; //On attribue à la sortie la confiance maximale inférieure au seuil
+		if (likelihood == minLikelihood){ //If the likelihood equals to the threshold (if there is no maximum cardinality detected)
+			cardConstraint.likelihood = underMinLower; //the likelihood is the highest value under the threshold
 		}
 		else {
-			cardConstraint.likelihood = likelihood; //Sinon, on attribue la confiance maximale trouvée
+			cardConstraint.likelihood = likelihood; //else, the likelihhod is the highest value retrieved
 		}
 		cardConstraint.maximumCardinality = maximumCardinality;
 		return cardConstraint;
