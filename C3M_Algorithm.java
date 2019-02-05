@@ -58,8 +58,7 @@ public class C3M_Algorithm {
 		this.likelihood = minLikelihood;
 		this.minOccurrence = (int) K.minOccurrence;
 		//YOU HAVE TO CHOOSE THE OUTPUT PATH
-		//this.fileOut = "test//Results(" + String.valueOf(minLikelihood) + ").csv";
-		this.fileOut = "/Users/corentinviemon/Desktop/Résultats/Résultats(" + String.valueOf(minLikelihood) + ").csv";
+		this.fileOut = "test//Results(" + String.valueOf(minLikelihood) + ").csv";
 		System.out.println("Enf of data download in" + K.time() + "\r\n");
 		
 		//Start of the algorithm
