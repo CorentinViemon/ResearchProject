@@ -38,6 +38,7 @@ public class C3M_Algorithm {
 	 * 
 	 * 
 	 * @param triplestore
+	 * @param graph
 	 * @param confidenceLevel
 	 * @param minLikelihood
 	 * @throws IOException
@@ -46,11 +47,11 @@ public class C3M_Algorithm {
 	 * 
 	 * @author corentinviemon
 	 */
-	public C3M_Algorithm(Triplestore triplestore, double confidenceLevel, double minLikelihood) throws IOException, InterruptedException {
+	public C3M_Algorithm(Triplestore triplestore, String graph, double confidenceLevel, double minLikelihood) throws IOException, InterruptedException {
 		System.out.println("******** Parameters ********");
 		
 		//We retrieve all contexts of the first level
-		this.K = new Data_Retrieve(triplestore, confidenceLevel, minLikelihood);
+		this.K = new Data_Retrieve(triplestore, "<http://dbpedia.org>", confidenceLevel, minLikelihood);
 		this.graph = K.graph;
 		this.delta = K.delta;
 		this.triplestore = K.triplestore;
@@ -432,7 +433,7 @@ public class C3M_Algorithm {
 	@SuppressWarnings("unused")
 	public static void main(String[] args) throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
-		C3M_Algorithm Algorithm = new C3M_Algorithm(Triplestore.DBPEDIA, 0.99, 0.97);
+		C3M_Algorithm Algorithm = new C3M_Algorithm(Triplestore.DBPEDIA, "<http://dbpedia.org>", 0.99, 0.97);
 	}
 
 }
