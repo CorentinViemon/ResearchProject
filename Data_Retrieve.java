@@ -59,7 +59,7 @@ public class Data_Retrieve {
 		startTime = System.currentTimeMillis();
 		System.out.println("******** Downloading relations ********");
 		download_Relations();
-		System.out.println(relationsList.size() + " relations dowloaded in" + time() + "\r\n\r\n");
+		System.out.println(relationsList.size() + " relations downloaded in" + time() + "\r\n\r\n");
 	}
 	
 	
@@ -82,7 +82,7 @@ public class Data_Retrieve {
 		
 		ContextsRelationsQuery query = new ContextsRelationsQuery(queryStr, triplestore.getEndpoint(), "relation");
 		query.execute();
-		relationsList = query.relationsList;
+		relationsList = query.resultsList;
 	}
 	
 	
@@ -107,7 +107,7 @@ public class Data_Retrieve {
 		query.execute();
 		
 		//Results are put in a HashMap to retrieve results quickly during the rest of the algorithm
-		this.levelExplore.put(level, query.relationsList);
+		this.levelExplore.put(level, query.resultsList);
 		}
 	
 	
