@@ -15,7 +15,7 @@ import java.util.Map;
 public class Data_Retrieve {	
 	
 	public Triplestore triplestore;
-	protected String graph = "<http://dbpedia.org>";
+	protected String graph;
 	
 
 	private int level = 1;
@@ -39,10 +39,11 @@ public class Data_Retrieve {
 	 * @param minLikelihood
 	 * @throws InterruptedException
 	 */
-	public Data_Retrieve(Triplestore triplestore, double confidenceLevel, double minLikelihood) throws InterruptedException {
+	public Data_Retrieve(Triplestore triplestore, String graph, double confidenceLevel, double minLikelihood) throws InterruptedException {
 		this.triplestore = triplestore;
 		this.minLikelihood = minLikelihood;
 		this.delta = (float) (1 - confidenceLevel);
+		this.graph = graph;
 		this.relationsList = new ArrayList<String>();
 		this.levelExplore = new HashMap <Integer, ArrayList<String>>();
 		minOccurrence = (int) this.getMinimalCount();
