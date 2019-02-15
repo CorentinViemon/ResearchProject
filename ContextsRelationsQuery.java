@@ -15,7 +15,7 @@ import org.apache.jena.query.QuerySolution;
  */
 public class ContextsRelationsQuery extends SparqlQuerier{
 
-	protected ArrayList <String> relationsList;
+	protected ArrayList <String> resultsList;
 	protected boolean error = false;
 	protected String solution; //To know if we want to retrieve contexts or relations in a query
 	
@@ -29,7 +29,7 @@ public class ContextsRelationsQuery extends SparqlQuerier{
 	 */
 	public ContextsRelationsQuery(String query, String triplestore, String solution) {
 		super(query, triplestore);
-		this.relationsList = new ArrayList <String>();
+		this.resultsList = new ArrayList <String>();
 		this.solution = solution;
 	}
 	
@@ -43,7 +43,7 @@ public class ContextsRelationsQuery extends SparqlQuerier{
 	 */
 	public ContextsRelationsQuery(String query, String triplestore, int size) {
 		super(query, triplestore);
-		this.relationsList = new ArrayList <String>();
+		this.resultsList = new ArrayList <String>();
 	}
 	
 	
@@ -56,7 +56,7 @@ public class ContextsRelationsQuery extends SparqlQuerier{
 
 	@Override
 	public void end() {
-		
+		error=false;
 	}
 
 	
@@ -66,7 +66,7 @@ public class ContextsRelationsQuery extends SparqlQuerier{
 	@Override
 	public boolean fact(QuerySolution qs) throws InterruptedException {
 		String temp = qs.get(solution).asResource().toString();
-		relationsList.add(temp);
+		resultsList.add(temp);
 		return true;
 	}
 
