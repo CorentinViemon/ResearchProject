@@ -45,6 +45,59 @@ public class CardinalityConstraint {
 	 */
 	public CardinalityConstraint() {
 		
+	}
+
+
+	public int getLevel() {
+		return level;
+	}
+
+
+	public void setLevel(int level) {
+		this.level = level;
+	}
+
+
+	public String getContext() {
+		return context;
+	}
+
+
+	public void setContext(String context) {
+		this.context = context;
+	}
+
+
+	public String getRelation() {
+		return relation;
+	}
+
+
+	public void setRelation(String relation) {
+		this.relation = relation;
+	}
+
+
+	public int getMaximumCardinality() {
+		return maximumCardinality;
+	}
+
+
+	public void setMaximumCardinality(int maximumCardinality) {
+		this.maximumCardinality = maximumCardinality;
+	}
+
+
+	public double getLikelihood() {
+		return likelihood;
+	}
+
+
+	public void setLikelihood(double likelihood) {
+		this.likelihood = likelihood;
 	}	
+	
+	
+	
 	
 }
