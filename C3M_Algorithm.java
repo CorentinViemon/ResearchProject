@@ -50,7 +50,7 @@ public class C3M_Algorithm {
 		System.out.println("******** Parameters ********");
 		
 		//We retrieve all contexts of the first level
-		this.K = new Data_Retrieve(Triplestore.DBPEDIA, confidenceLevel, minLikelihood);
+		this.K = new Data_Retrieve(triplestore, confidenceLevel, minLikelihood);
 		this.graph = K.graph;
 		this.delta = K.delta;
 		this.triplestore = K.triplestore;
@@ -59,6 +59,7 @@ public class C3M_Algorithm {
 		this.minOccurrence = (int) K.minOccurrence;
 		//YOU HAVE TO CHOOSE THE OUTPUT PATH
 		this.fileOut = "test//Results(" + String.valueOf(minLikelihood) + ").csv";
+		//this.fileOut = "/Users/corentinviemon/Desktop/Résultats/Résultats(" + String.valueOf(minLikelihood) + ").csv";
 		System.out.println("Enf of data download in" + K.time() + "\r\n");
 		
 		//Start of the algorithm
@@ -92,7 +93,7 @@ public class C3M_Algorithm {
 			//We start the algorithm C3M_Explore with the given relation and with the context TOP
 			tmpConstraintsList = C3M_Explore(K, relation, context, cardinality, minLikelihood, confidenceLevel);
 			
-			//Then, when we have all constraints for the given relation, we retrieve all minim maximum cardinalities
+			//Then, when we have all constraints for the given relation, we retrieve all minimum maximum cardinalities
 			tmpMinimumConstraintsList = computeMinimumMaximumCardinality(tmpConstraintsList);
 
 			System.out.println("Time elapsed since the beginning:" + K.time());
@@ -101,7 +102,7 @@ public class C3M_Algorithm {
 			for (Map.Entry <String, CardinalityConstraint> mapentry : tmpMinimumConstraintsList.entrySet()) {
 				String key = mapentry.getValue().relation + ";" + mapentry.getValue().context;
 				constraintsListToPrint.putIfAbsent(key, mapentry.getValue());
-				System.out.println("Context : " + mapentry.getValue().context+ " MaximumCardinality : " +mapentry.getValue().maximumCardinality + " Likelihood : " + mapentry.getValue().likelihood+ " Level : " + mapentry.getValue().level);
+				//System.out.println("Context : " + mapentry.getValue().context+ " MaximumCardinality : " +mapentry.getValue().maximumCardinality + " Likelihood : " + mapentry.getValue().likelihood+ " Level : " + mapentry.getValue().level);
 			}
 			System.out.println(constraintsListToPrint.size());
 			//the relation will change so different ArrayList are cleared because context will be different
@@ -130,23 +131,24 @@ public class C3M_Algorithm {
 			query.execute();
 			//To manage error and retry the query after a sleep time
 			while (query.error == true) {
-				TimeUnit.SECONDS.sleep(15);
+				TimeUnit.SECONDS.sleep(20);
+				System.out.println("ERROR! relation: " + relation + "  context: " + context);
 				query.execute();
 			}
 
 			//Compute the maximum cardinality
 			CardinalityConstraint constraint = computeMaximumCardinality(query.countPerCardinalities);
-			if(! query.countPerCardinalities.isEmpty() && constraint.likelihood >= minLikelihood) {
-				constraint.context = "Top";
-				constraint.relation = relation;
-				constraint.level = 0;
+			if(! query.countPerCardinalities.isEmpty() && constraint.getLikelihood() >= minLikelihood) {
+				constraint.setContext("Top");
+				constraint.setRelation(relation);
+				constraint.setLevel(0);
 				String key = relation + ";" + context;
 				tempConstraintsList.putIfAbsent(key, constraint);
 			}
 			
 			//If the maximum cardinality is greater than 1, the HashMap taht contains first level is browsed
-			if(constraint.maximumCardinality > 1){
-				System.out.println("Level 1 -> " + K.levelExplore.get(1).size() + " classes pour la relation donnée");
+			if(constraint.getMaximumCardinality() > 1){
+				System.out.println("Level 1 -> " + K.levelExplore.get(1).size() + " contexts for the given relation");
 				for(int numContext = 0; numContext < K.levelExplore.get(1).size() ; numContext++) {
 					level = 1;
 					context = K.levelExplore.get(1).get(numContext);
@@ -175,22 +177,23 @@ public class C3M_Algorithm {
 			query.execute();
 			//To manage error and retry the query after a sleep time
 			while (query.error == true) {
-				TimeUnit.SECONDS.sleep(15);
+				TimeUnit.SECONDS.sleep(20);
+				System.out.println("ERROR! relation: " + relation + "  context: " + context);
 				query.execute();
 			}
 			
 			//We compute the maximum cardinality
 			CardinalityConstraint constraint = computeMaximumCardinality(query.countPerCardinalities);
 			//If there is a maximum cardinality and if the likelihood is greater than the likelihood threshold
-			if(! query.countPerCardinalities.isEmpty() && constraint.likelihood >= minLikelihood) {
-				constraint.context = context;
-				constraint.relation = relation;
-				constraint.level = level;
+			if(! query.countPerCardinalities.isEmpty() && constraint.getLikelihood() >= minLikelihood) {
+				constraint.setContext(context);
+				constraint.setRelation(relation);
+				constraint.setLevel(level);
 				String key = relation + ";" + context;
 				tempConstraintsList.putIfAbsent(key, constraint);
 			}
-			//If the maximum cardinality computed is greater than 1 and if it's not an error (if the cardinality is infinite), we retrieve direct sub-contexts
-			if((! query.countPerCardinalities.isEmpty() && constraint.maximumCardinality > 1) || (query.countPerCardinalities.isEmpty() && query.error == true)) {
+			//If the maximum cardinality computed is greater than 1, we retrieve direct sub-contexts
+			if((constraint.getMaximumCardinality() > 1)) {
 				queryStr = Triplestore.getPrefix()
 						+ "SELECT distinct ?subContext FROM " + graph + " WHERE {\r\n"
 						+ "?subContext rdfs:subClassOf <"+ context + ">. ?x a ?subContext.}\r\n"
@@ -206,18 +209,23 @@ public class C3M_Algorithm {
 				contextsQuery.execute();
 				//To manage error and retry the query after a sleep time
 				while (contextsQuery.error == true) {
-					TimeUnit.SECONDS.sleep(15);
+					TimeUnit.SECONDS.sleep(20);
+					System.out.println("ERROR! relation: " + relation + "  context: " + context);
 					contextsQuery.execute();
 				}
 
-				//If there is sub-contexts, the arrylist is browsed
-				if (! contextsQuery.relationsList.isEmpty()) {
+				//If there are sub-contexts, the arraylist is browsed
+				if (! contextsQuery.resultsList.isEmpty()) {
 					level ++;
-					for (int k=0; k<contextsQuery.relationsList.size(); k++) {
-						context = contextsQuery.relationsList.get(k);
+					for (int k=0; k<contextsQuery.resultsList.size(); k++) {
+						context = contextsQuery.resultsList.get(k);
 						if(! contextsDone.contains(context)) { //Test to be sure that this context has not been done yet
 							contextsDone.add(context); //Context is added to an arraylist to be sure that the cardinality for this context and for the given relation is not computed twice
 							C3M_Explore(K, relation, context, cardinality, minLikelihood, confidenceLevel);
+						}
+						else if(tempConstraintsList.containsKey(relation+ ";" +context) && tempConstraintsList.get(relation+ ";" +context).level>level) {
+							tempConstraintsList.get(relation+ ";" +context).setLevel(level);
+							System.out.println("Relation: " + relation + "  Context: " + context + " -> Shortest path for the level found");
 						}
 					}
 					level --;
@@ -285,153 +293,72 @@ public class C3M_Algorithm {
 	 * @return
 	 */
 	public Map <String, CardinalityConstraint> computeMinimumMaximumCardinality(Map <String, CardinalityConstraint> inputConstraintsList) {
+
+		for (Map.Entry <String, CardinalityConstraint> mapentry : inputConstraintsList.entrySet()) {
+			System.out.println("Context : " + mapentry.getValue().context+ " MaximumCardinality : " +mapentry.getValue().maximumCardinality + " Likelihood : " + mapentry.getValue().likelihood+ " Level : " + mapentry.getValue().level);
+		}
+		
+		
 		
 		Map <String, CardinalityConstraint> list = new HashMap<String, CardinalityConstraint>();
-		ArrayList <String> tmpContexts = new ArrayList <String>();
-		ArrayList <CardinalityConstraint> constraintsList = new ArrayList <CardinalityConstraint>();
-		ArrayList <CardinalityConstraint> fixConstraintsList = new ArrayList <CardinalityConstraint>();
 		int cardinalityTop = Integer.MAX_VALUE;
-		int level = 0;
 		
 		for (Map.Entry <String, CardinalityConstraint> mapentryTop : inputConstraintsList.entrySet()) {
 			if(mapentryTop.getValue().context.equals("Top")) {
 				cardinalityTop = mapentryTop.getValue().maximumCardinality;
-				fixConstraintsList.add(mapentryTop.getValue());
+				String key = mapentryTop.getValue().relation + ";" + mapentryTop.getValue().context;
+				list.putIfAbsent(key, mapentryTop.getValue());
 			}
 			else
 				continue;
 		}
 		
 		for (Map.Entry <String, CardinalityConstraint> mapentry : inputConstraintsList.entrySet()) {
-			String relation = mapentry.getValue().relation; 
-			String context = mapentry.getValue().context;
-			int cardinality = mapentry.getValue().maximumCardinality;
-			level = mapentry.getValue().level;
+			CardinalityConstraint topCardConstr = new CardinalityConstraint();
+			topCardConstr.setContext(mapentry.getValue().context);
+			topCardConstr.setRelation(mapentry.getValue().relation);
+			topCardConstr.setLevel(mapentry.getValue().level);
+			topCardConstr.setMaximumCardinality(mapentry.getValue().maximumCardinality);
+			topCardConstr.setLikelihood(mapentry.getValue().likelihood);
 			ArrayList <String> listMeres = new ArrayList<String>();
-			
-			if (context.equals("Top") || cardinality == cardinalityTop || tmpContexts.contains(relation + ";" + context))
+		
+			if (topCardConstr.getContext().equals("Top") || topCardConstr.getMaximumCardinality() == cardinalityTop)
 				continue;
 			
-			if(hierarchies.containsKey(context) && ! hierarchies.get(context).isEmpty())
-				listMeres = hierarchies.get(context);
+			if(hierarchies.containsKey(topCardConstr.getContext()))
+				listMeres = hierarchies.get(topCardConstr.getContext());
 			else if (mapentry.getValue().maximumCardinality < cardinalityTop) {
-				fixConstraintsList.add(mapentry.getValue());
+				String key = topCardConstr.getRelation() + ";" + topCardConstr.getContext();
+				list.putIfAbsent(key, mapentry.getValue());
+				continue;
 			}
 			
 			if(! listMeres.isEmpty()){
-				boolean hasTopClass = false;
-				boolean multiple = false;
 				for (int nb=0 ; nb<listMeres.size(); nb++){
-					String mere = relation +";"+listMeres.get(nb);
+					String mere = topCardConstr.getRelation() +";"+listMeres.get(nb);
 					if (inputConstraintsList.containsKey(mere)) {
-						if((inputConstraintsList.get(mere).maximumCardinality == cardinality || multiple == true) && inputConstraintsList.get(mere).maximumCardinality < level) {
-							hasTopClass = true;
-							level = inputConstraintsList.get(mere).level;
-							int fixSize = constraintsList.size();
-							int changingSize = fixSize;
-							if(! constraintsList.isEmpty()) {
-								int i = 0;
-								while(i < changingSize) {
-									if(constraintsList.get(i).maximumCardinality == inputConstraintsList.get(mere).maximumCardinality) {
-										constraintsList.remove(i);
-										changingSize = constraintsList.size();
-									}
-									else 
-										i++;
-									multiple = false;
-								}
-							}
-							if(constraintsList.size() < fixSize || constraintsList.isEmpty()) {
-								constraintsList.add(inputConstraintsList.get(mere));
-								cardinality = inputConstraintsList.get(mere).maximumCardinality;
-							}
+						if(inputConstraintsList.get(mere).maximumCardinality == topCardConstr.getMaximumCardinality() && inputConstraintsList.get(mere).level < topCardConstr.getLevel()) {
+							topCardConstr.setContext(inputConstraintsList.get(mere).context);
+							topCardConstr.setLevel(inputConstraintsList.get(mere).level);
+							topCardConstr.setLikelihood(inputConstraintsList.get(mere).likelihood);
+							topCardConstr.setMaximumCardinality(inputConstraintsList.get(mere).maximumCardinality);
 						}
-						else if(inputConstraintsList.get(mere).level == level && inputConstraintsList.get(mere).maximumCardinality < cardinalityTop) {
-							hasTopClass = true;
-							multiple = true;
-							if(inputConstraintsList.get(mere).maximumCardinality < cardinality)
-								cardinality = inputConstraintsList.get(mere).maximumCardinality;
-							constraintsList.add(inputConstraintsList.get(mere));
-						}
-						tmpContexts.add(mere);
 					}
-				}
-				if(hasTopClass == false && mapentry.getValue().maximumCardinality < cardinalityTop) {
-					fixConstraintsList.add(mapentry.getValue());
-				}	
-				
-				else {
-					for(int i = 0 ; i < constraintsList.size(); i++) {
-						fixConstraintsList.add(constraintsList.get(i));
-					}
-					constraintsList.clear();
+					else
+						continue;
 				}
 			}
-		}
-		
-		for(int k=0 ; k < fixConstraintsList.size(); k++) {
-			String key = fixConstraintsList.get(k).relation + ";" + fixConstraintsList.get(k).context;
-			list.putIfAbsent(key, fixConstraintsList.get(k));
-		}
-		
-		
-		
-		
-		/*int cardinality = cardinalityTop;
-		for (Map.Entry <String, CardinalityConstraint> mapentry : inputConstraintsList.entrySet()) {
-			String relation = mapentry.getValue().relation; 
-			String context = mapentry.getValue().context;
-			ArrayList <String> listMeres = new ArrayList<String>();
-			if (context.equals("Top") || tmpContexts.contains(relation + ";" + context))
+			if(topCardConstr.getMaximumCardinality() < cardinalityTop) {
+				String key = topCardConstr.relation + ";" + topCardConstr.getContext();
+				list.putIfAbsent(key, topCardConstr);
+			}
+			else {
 				continue;
-			
-			if(hierarchies.containsKey(context) && ! hierarchies.get(context).isEmpty())
-				listMeres = hierarchies.get(context);
-			else if (mapentry.getValue().maximumCardinality < cardinalityTop) {
-				fixConstraintsList.add(mapentry.getValue());
-			}
-			if(! listMeres.isEmpty()){
-				boolean hasTopClass = false;
-				for (int nb=0 ; nb<listMeres.size(); nb++){
-					String mere = relation +";"+listMeres.get(nb);
-					if (inputConstraintsList.containsKey(mere) && ! tmpContexts.contains(mere)) {
-						if(inputConstraintsList.get(mere).maximumCardinality < cardinality) {
-							hasTopClass = true;
-							level = inputConstraintsList.get(mere).level;
-							cardinality = inputConstraintsList.get(mere).maximumCardinality;
-							constraintsList.add(inputConstraintsList.get(mere));
-						}
-						else if(inputConstraintsList.get(mere).level == level && inputConstraintsList.get(mere).maximumCardinality < cardinalityTop) {
-							hasTopClass = true;
-							if(inputConstraintsList.get(mere).maximumCardinality < cardinality)
-								cardinality = inputConstraintsList.get(mere).maximumCardinality;
-							constraintsList.add(inputConstraintsList.get(mere));
-						}
-						tmpContexts.add(mere);
-					}
-				}
-				if(hasTopClass == true) {
-					for(int i = 0 ; i < constraintsList.size(); i++) {
-						fixConstraintsList.add(constraintsList.get(i));
-					}
-					constraintsList.clear();
-				}		
-				else if (hasTopClass == false && mapentry.getValue().maximumCardinality < cardinalityTop)
-					fixConstraintsList.add(mapentry.getValue());
 			}
 		}
-		
-		for(int k=0 ; k < constraintsList.size(); k++) {
-			String key = constraintsList.get(k).relation + ";" + constraintsList.get(k).context;
-			list.putIfAbsent(key, constraintsList.get(k));
-		}
-		for(int k=0 ; k < fixConstraintsList.size(); k++) {
-			String key = fixConstraintsList.get(k).relation + ";" + fixConstraintsList.get(k).context;
-			list.putIfAbsent(key, fixConstraintsList.get(k));
-		}*/
 		
 		return list;
-	}
+	}	
 	
 	
 	
@@ -443,9 +370,9 @@ public class C3M_Algorithm {
 	 * @param contexteFille
 	 * @throws InterruptedException
 	 */
-	public void getHierarchies(String contexteFille) throws InterruptedException {
+	public void getHierarchies(String context) throws InterruptedException {
 		String queryStr = Triplestore.getPrefix()
-				+ "SELECT ?mere FROM " + graph + " WHERE {<" + contexteFille + "> rdfs:subClassOf+ ?mere. "
+				+ "SELECT ?mere FROM " + graph + " WHERE {<" + context + "> rdfs:subClassOf+ ?mere. "
 				+ "?entity a ?mere"
 				+ "}"
 				+ "GROUP BY ?mere\r\n"
@@ -454,12 +381,13 @@ public class C3M_Algorithm {
 		query.execute();
 		//To manage error and retry the query after a sleep time
 		while (query.error == true) {
-			TimeUnit.SECONDS.sleep(15);
+			TimeUnit.SECONDS.sleep(20);
+			System.out.println("ERROR!  context: " + context);
 			query.execute();
 		}
 		
-		if(! query.relationsList.isEmpty())
-			hierarchies.putIfAbsent(contexteFille, query.relationsList); //Une fois toutes les relations mères récupérées, on les mets dans la HashMap avec la relation fille en clé
+		if(! query.resultsList.isEmpty())
+			hierarchies.putIfAbsent(context, query.resultsList); //Une fois toutes les relations mères récupérées, on les mets dans la HashMap avec la relation fille en clé
 	}
 	
 	
